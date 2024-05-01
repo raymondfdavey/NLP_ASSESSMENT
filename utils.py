@@ -68,11 +68,16 @@ class CustomPropagandaDataset(Dataset):
         input_ids, token_type_ids, attention_masks, label = [self.labelled_embeddings[key][idx] for key in self.labelled_embeddings.keys()]
         return {'input_ids':input_ids, 'token_type_ids': token_type_ids, 'attention_mask':attention_masks, 'labels':label}
     
-def format_and_tokenise_from_df(df, tokenizer):
-    max_len = 160
+def format_and_tokenise_from_df(df, tokenizer, task="prop"):
+    max_len = 64
     
-    labels = list(df['propaganda'])
-    sents = list(df['original_sentence_no_tags'])
+    if task == "snip":
+        labels = list(df['propaganda'])
+        sents = list(df['original_sentence_no_tags'])
+    
+    else:
+        labels = list(df['snippet_label'])
+        sents = list(df['snippet_original'])
     
     sents_input_embeddings = tokenizer(sents, padding='max_length', max_length=max_len, truncation=True, return_tensors='pt')
     sents_input_embeddings['labels'] = torch.tensor([label for label in labels])
@@ -83,9 +88,14 @@ def format_and_tokenise_from_df(df, tokenizer):
     print(sents[:5])
     return sents_input_embeddings
 
-def get_cols_for_bert(df):    
+def get_cols_for_bert(df, task):    
+    
     df = df.copy()
-    df = df[['propaganda', 'original_sentence_no_tags']]
+    if task == 'prop':
+        df = df[['propaganda', 'original_sentence_no_tags']]
+    if task =='snip':
+        df = df[['snippet_label', 'snippet_original']]
+        
     return df
 
 def get_processed_data(dev=True):
