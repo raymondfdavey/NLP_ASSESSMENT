@@ -13,8 +13,82 @@ from sklearn.naive_bayes import MultinomialNB
 import re
 nltk.download('punkt')
 from nltk.tokenize import word_tokenize
+from torch.utils.data import Dataset
+import torch
+from torch import nn
+from transformers import BertModel
 
-def get_processed_data():
+class BertClassifier_2(nn.Module):
+    def __init__(self, dropout=0.5, num_classes=2):
+        super(BertClassifier, self).__init__()
+        self.bert = BertModel.from_pretrained('bert-base-uncased')
+        self.dropout = nn.Dropout(dropout)
+        self.linear = nn.Linear(768, num_classes)
+        
+        if num_classes == 2:
+            self.activation = nn.Sigmoid()
+        else:
+            self.activation = nn.Softmax(dim=1)
+
+    def forward(self, input_id, mask):
+        last_hidden_layer, pooled_output = self.bert(input_ids=input_id, attention_mask=mask, return_dict=False)
+        dropout_output = self.dropout(pooled_output)
+        linear_output = self.linear(dropout_output)
+        final_layer = self.activation(linear_output)
+        return final_layer
+
+class BertClassifier(nn.Module):
+
+    def __init__(self,dropout=0.5,num_classes=2):
+        super(BertClassifier,self).__init__()
+
+        self.bert=BertModel.from_pretrained('bert-base-uncased')
+        self.dropout=nn.Dropout(dropout)
+        self.linear=nn.Linear(768,num_classes)
+        self.relu=nn.ReLU()
+
+    def forward(self,input_id,mask):
+
+        last_hidden_layer, pooled_output = self.bert(input_ids=input_id,attention_mask=mask,return_dict=False)
+        dropout_output=self.dropout(pooled_output)
+        linear_output=self.linear(dropout_output)
+        final_layer=self.relu(linear_output)
+
+        return final_layer
+
+class CustomPropagandaDataset(Dataset):
+    def __init__(self, labelled_embeddings_dict):
+
+        self.labelled_embeddings = labelled_embeddings_dict
+
+    def __len__(self):
+        return len(self.labelled_embeddings['input_ids'])
+
+    def __getitem__(self, idx):
+        input_ids, token_type_ids, attention_masks, label = [self.labelled_embeddings[key][idx] for key in self.labelled_embeddings.keys()]
+        return {'input_ids':input_ids, 'token_type_ids': token_type_ids, 'attention_mask':attention_masks, 'labels':label}
+    
+def format_and_tokenise_from_df(df, tokenizer):
+    max_len = 160
+    
+    labels = list(df['propaganda'])
+    sents = list(df['original_sentence_no_tags'])
+    
+    sents_input_embeddings = tokenizer(sents, padding='max_length', max_length=max_len, truncation=True, return_tensors='pt')
+    sents_input_embeddings['labels'] = torch.tensor([label for label in labels])
+    
+    print(len(sents_input_embeddings['input_ids']))
+    print(len(sents_input_embeddings['labels']))
+    print(labels[:5])    
+    print(sents[:5])
+    return sents_input_embeddings
+
+def get_cols_for_bert(df):    
+    df = df.copy()
+    df = df[['propaganda', 'original_sentence_no_tags']]
+    return df
+
+def get_processed_data(dev=True):
     
     parentdir = "./propaganda_dataset_v2"
     train_file= "propaganda_train.tsv"
@@ -24,16 +98,23 @@ def get_processed_data():
     val_path=os.path.join(parentdir,val_file)
     train_df=pd.read_csv(train_path,delimiter="\t",quotechar='|')
     val_df=pd.read_csv(val_path,delimiter="\t",quotechar='|')
-
-    merged = pd.concat([train_df, val_df], axis = 0)
-    train_df, val_df = train_test_split(merged, test_size=0.3, shuffle=True,random_state=1) 
-    val_df, test_df = train_test_split(val_df, test_size=0.5, shuffle=True, random_state=2)
     
-    transformed_train_df = transform_df(train_df)
-    transformed_val_df = transform_df(val_df)
-    transformed_test_df = transform_df(test_df)
+    if dev:
+        merged = pd.concat([train_df, val_df], axis = 0)
+        train_df, val_df = train_test_split(merged, test_size=0.3, shuffle=True,random_state=1) 
+        val_df, test_df = train_test_split(val_df, test_size=0.5, shuffle=True, random_state=2)
+        
+        transformed_train_df = transform_df(train_df)
+        transformed_val_df = transform_df(val_df)
+        transformed_test_df = transform_df(test_df)
+        
+        return transformed_train_df, transformed_val_df, transformed_test_df
     
-    return transformed_train_df, transformed_val_df, transformed_test_df
+    else:
+        transformed_train_df = transform_df(train_df)
+        transformed_val_df = transform_df(val_df)
+        
+        return transformed_train_df, transformed_val_df
 
 
 
