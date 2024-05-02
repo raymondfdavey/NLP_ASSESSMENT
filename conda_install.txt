@@ -1,0 +1,1 @@
+conda install -c conda-forge transformers -c pytorch -c nvidia pytorch torchvision pytorch-cuda=11.8

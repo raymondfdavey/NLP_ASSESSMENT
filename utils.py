@@ -16,7 +16,7 @@ from nltk.tokenize import word_tokenize
 from torch.utils.data import Dataset
 import torch
 from torch import nn
-from transformers import BertModel
+from transformers import BertModel, BertTokenizer
 
 class BertClassifier_2(nn.Module):
     def __init__(self, dropout=0.5, num_classes=2):
@@ -68,8 +68,9 @@ class CustomPropagandaDataset(Dataset):
         input_ids, token_type_ids, attention_masks, label = [self.labelled_embeddings[key][idx] for key in self.labelled_embeddings.keys()]
         return {'input_ids':input_ids, 'token_type_ids': token_type_ids, 'attention_mask':attention_masks, 'labels':label}
     
-def format_and_tokenise_from_df(df, tokenizer, task="prop", max_len=64):
-    
+def format_and_tokenise_from_df(df, task="prop", max_len=64):
+    tokenizer = BertTokenizer.from_pretrained('bert-base-cased')
+
     if task == "snip":
         labels = list(df['snippet_label'])
         sents = list(df['snippet_original'])
@@ -87,10 +88,10 @@ def format_and_tokenise_from_df(df, tokenizer, task="prop", max_len=64):
     sents_input_embeddings = tokenizer(sents, padding='max_length', max_length=max_len, truncation=True, return_tensors='pt')
     sents_input_embeddings['labels'] = torch.tensor([label for label in labels])
     
-    print(len(sents_input_embeddings['input_ids']))
-    print(len(sents_input_embeddings['labels']))
-    print(labels[:5])    
-    print(sents[:5])
+    # print(len(sents_input_embeddings['input_ids']))
+    # print(len(sents_input_embeddings['labels']))
+    # print(labels[:5])    
+    # print(sents[:5])
     return sents_input_embeddings
 
 def get_cols_for_bert(df, task):    
