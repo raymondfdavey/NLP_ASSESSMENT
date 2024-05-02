@@ -68,16 +68,21 @@ class CustomPropagandaDataset(Dataset):
         input_ids, token_type_ids, attention_masks, label = [self.labelled_embeddings[key][idx] for key in self.labelled_embeddings.keys()]
         return {'input_ids':input_ids, 'token_type_ids': token_type_ids, 'attention_mask':attention_masks, 'labels':label}
     
-def format_and_tokenise_from_df(df, tokenizer, task="prop"):
-    max_len = 64
+def format_and_tokenise_from_df(df, tokenizer, task="prop", max_len=64):
     
     if task == "snip":
-        labels = list(df['propaganda'])
-        sents = list(df['original_sentence_no_tags'])
-    
-    else:
         labels = list(df['snippet_label'])
         sents = list(df['snippet_original'])
+        
+        label_to_id = {'flag_waving': 0, 'exaggeration,minimisation': 1, 'causal_oversimplification': 2, 'name_calling,labeling': 3, 'repetition': 4, 'doubt': 5, 'not_propaganda': 6, 'loaded_language': 7, 'appeal_to_fear_prejudice': 8}
+
+        # Convert labels to integers using the label_to_id dictionary
+        labels = [label_to_id[label] for label in labels]
+        
+        
+    else:
+        labels = list(df['propaganda'])
+        sents = list(df['original_sentence_no_tags'])
     
     sents_input_embeddings = tokenizer(sents, padding='max_length', max_length=max_len, truncation=True, return_tensors='pt')
     sents_input_embeddings['labels'] = torch.tensor([label for label in labels])
