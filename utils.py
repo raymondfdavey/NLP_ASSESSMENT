@@ -18,6 +18,36 @@ import torch
 from torch import nn
 from transformers import BertModel, BertTokenizer
 
+def plot_training(train_losses, train_accuracy, val_losses, val_accuracy):
+    epochs = range(1, len(train_losses) + 1)
+
+    plt.figure(figsize=(12, 5))
+
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs, train_losses, 'b-', label='Training loss')
+    plt.plot(epochs, val_losses, 'r-', label='Validation loss')
+    plt.title('Training and Validation Loss')
+    plt.xlabel('Epochs')
+    plt.xticks(epochs)  # Set x-axis ticks to only be at each epoch
+
+    plt.ylabel('Loss')
+    plt.legend()
+
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs, train_accuracy, 'b-', label='Training Accuracy')
+    plt.plot(epochs, val_accuracy, 'r-', label='Validation Accuracy')
+    plt.title('Training and Validation Accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.xticks(epochs)  # Set x-axis ticks to only be at each epoch
+
+    plt.ylim(0, 1)  # This sets the y-axis to be between 0 and 1
+
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+
 class BertClassifier_2(nn.Module):
     def __init__(self, dropout=0.5, num_classes=2):
         super(BertClassifier, self).__init__()
@@ -40,7 +70,7 @@ class BertClassifier_2(nn.Module):
 class BertClassifier(nn.Module):
 
     def __init__(self,dropout=0.5,num_classes=2):
-        super(BertClassifier,self).__init__()
+        super(BertClassifier, self).__init__()
 
         self.bert=BertModel.from_pretrained('bert-base-uncased')
         self.dropout=nn.Dropout(dropout)
@@ -49,18 +79,19 @@ class BertClassifier(nn.Module):
 
     def forward(self,input_id,mask):
 
-        last_hidden_layer, pooled_output = self.bert(input_ids=input_id,attention_mask=mask,return_dict=False)
+        _, pooled_output = self.bert(input_ids=input_id,attention_mask=mask,return_dict=False)
         dropout_output=self.dropout(pooled_output)
         linear_output=self.linear(dropout_output)
         final_layer=self.relu(linear_output)
 
         return final_layer
 
+# class CustomPropandaDatase(Dataset)
+
 class CustomPropagandaDataset(Dataset):
     def __init__(self, labelled_embeddings_dict):
 
         self.labelled_embeddings = labelled_embeddings_dict
-
     def __len__(self):
         return len(self.labelled_embeddings['input_ids'])
 
@@ -112,10 +143,11 @@ def get_processed_data(dev=True):
 
     train_path=os.path.join(parentdir,train_file)
     val_path=os.path.join(parentdir,val_file)
+    
     train_df=pd.read_csv(train_path,delimiter="\t",quotechar='|')
     val_df=pd.read_csv(val_path,delimiter="\t",quotechar='|')
     
-    if dev:
+    if dev == True:
         merged = pd.concat([train_df, val_df], axis = 0)
         train_df, val_df = train_test_split(merged, test_size=0.3, shuffle=True,random_state=1) 
         val_df, test_df = train_test_split(val_df, test_size=0.5, shuffle=True, random_state=2)
@@ -226,7 +258,9 @@ def transform_df(dataframe):
     transformed_df['snippet_label'] = transformed_df["label"]
     del transformed_df["label"]
     transformed_df['sentence_tokenised_no_tags'] = transformed_df.apply(transform_strip_tag_and_tokenize, axis=1)
+    
     transformed_df['original_sentence_no_tags'] = transformed_df.apply(transform_strip_tag, axis=1)
+    
     transformed_df['snippet_tokenised'] = transformed_df.apply(transform_extract_snippet_tokens, axis=1)
     transformed_df['snippet_original'] = transformed_df.apply(transform_extract_snippet_string, axis=1)
     transformed_df['propaganda'] = transformed_df.apply(transform_binaryify, axis=1)
