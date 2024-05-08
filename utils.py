@@ -175,15 +175,17 @@ def show_class_distros(dataframe, data_type='unspecified'):
     palette = sns.color_palette("hsv", len(labels))
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))  # Adjust the figure size as needed
-    fig.suptitle(f'{data_type} Data', fontsize=16)  # Add the figure title
+    # fig.suptitle(f'{data_type} Data', fontsize=16)  # Add the figure title
     
     # Create the first barplot
     sns.barplot(x=labels, y=label_counts, palette=palette, ax=ax1)
     ax1.set_xlabel('Label')
     ax1.set_ylabel('Count')
-    ax1.set_title('Label Counts')
-    ax1.set_xticklabels(labels, rotation=90)  # Rotate x-axis labels by 90 degrees
     
+    ax1.set_title(f'{data_type}\n\nLabel Counts')
+    # ax1.set_xticklabels(labels, rotation=90)  # Rotate x-axis labels by 90 degrees
+    ax1.set_xticklabels(labels, rotation=45, ha='right')  # Rotate x-axis labels by 45 degrees
+
     # Create the second barplot for propaganda vs non-propaganda
     non_propaganda_count = len(dataframe[dataframe["snippet_label"] == "not_propaganda"])
     propaganda_count = len(dataframe) - non_propaganda_count
@@ -193,7 +195,8 @@ def show_class_distros(dataframe, data_type='unspecified'):
     sns.barplot(x=labels_prop, y=counts_prop, palette=palette_prop, ax=ax2)
     ax2.set_xlabel('Category')
     ax2.set_ylabel('Count')
-    ax2.set_title('Propaganda vs Non-Propaganda Counts')
+    ax2.set_title(f'{data_type}\n\nPropaganda vs Non-Propaganda Counts')
+    ax2.set_xticklabels(labels, rotation=45, ha='right')  # Rotate x-axis labels by 45 degrees
     
 def get_snippet_from_sentence(single_sent):
   tokenized_sent = word_tokenize(single_sent)
